@@ -20,6 +20,7 @@ from codepilot.core.database import (
 )
 from codepilot.core.metrics import metrics_response
 from codepilot.indexer.repo import index_repository
+from codepilot.server.demo import router as demo_router
 from codepilot.server.schemas import ChatRequest, CreateSessionRequest, CreateTaskRequest
 
 settings = get_settings()
@@ -29,6 +30,7 @@ init_db(engine)
 app = FastAPI(title="CodePilot Agent Server", version="0.1.0")
 STATIC_DIR = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.include_router(demo_router)
 
 
 def db_session():

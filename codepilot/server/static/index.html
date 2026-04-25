@@ -3,140 +3,185 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CodePilot Dashboard</title>
+    <title>CodePilot | 私有代码仓库智能开发助手</title>
     <link rel="stylesheet" href="/static/styles.css">
   </head>
   <body>
-    <aside class="sidebar">
-      <div class="brand">
-        <img src="/static/logo.png" alt="CodePilot Logo">
-        <div>
-          <strong>CodePilot</strong>
-          <span>Private Repo Agent</span>
-        </div>
-      </div>
-      <nav>
-        <a href="#workspace" class="active">工作台</a>
-        <a href="#tasks">任务</a>
-        <a href="#ops">运维</a>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="CodePilot 首页">
+        <img src="/static/logo.png" alt="">
+        <span>CodePilot</span>
+      </a>
+      <nav class="nav-links" aria-label="主导航">
+        <a href="#demo">Demo</a>
+        <a href="#retrieval">Retrieval</a>
+        <a href="#trace">Trace</a>
+        <a href="#metrics">Metrics</a>
         <a href="/docs" target="_blank" rel="noreferrer">API Docs</a>
-        <a href="/metrics" target="_blank" rel="noreferrer">Metrics</a>
       </nav>
-    </aside>
+      <div class="service-pill">
+        <span id="health-dot" class="dot pending"></span>
+        <span id="health-text">Checking</span>
+      </div>
+    </header>
 
-    <main class="shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Local Agent Console</p>
-          <h1>CodePilot 控制台</h1>
+    <main id="top">
+      <section class="hero section">
+        <div class="hero-copy">
+          <p class="eyebrow">Private Repo Agent</p>
+          <h1>面向私有代码仓库的智能开发助手</h1>
+          <p class="hero-text">
+            CodePilot 将仓库索引、LangGraph Agent 编排、ReAct 执行轨迹、安全工具调用、MCP Server
+            和 Prometheus 监控整合到一条可追踪的本地开发链路中。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#demo">立即体验 Demo</a>
+            <a class="button" href="https://github.com/CozyOct1/codepilot" target="_blank" rel="noreferrer">查看 GitHub</a>
+            <a class="button" href="#architecture">查看架构</a>
+          </div>
         </div>
-        <div class="status-strip">
-          <span id="health-dot" class="dot pending"></span>
-          <span id="health-text">检查服务中</span>
-        </div>
-      </header>
-
-      <section class="metric-grid" aria-label="服务概览">
-        <div class="metric">
-          <span>服务状态</span>
-          <strong id="service-status">-</strong>
-        </div>
-        <div class="metric">
-          <span>最近任务</span>
-          <strong id="task-count">0</strong>
-        </div>
-        <div class="metric">
-          <span>完成任务</span>
-          <strong id="completed-count">0</strong>
-        </div>
-        <div class="metric">
-          <span>失败任务</span>
-          <strong id="failed-count">0</strong>
+        <div class="hero-console" aria-label="Agent 执行摘要">
+          <div class="console-top">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="console-body">
+            <p><b>Thought</b> 定位任务接口入口和数据库写入链路</p>
+            <p><b>Action</b> repo_search("POST /api/tasks")</p>
+            <p><b>Observation</b> main.py / database.py / graph.py</p>
+            <p><b>Final</b> 输出调用链、风险边界和优化建议</p>
+          </div>
         </div>
       </section>
 
-      <section id="workspace" class="workspace">
-        <div class="panel task-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Create Task</p>
-              <h2>创建 Agent 任务</h2>
-            </div>
-            <label class="toggle">
-              <input id="run-agent" type="checkbox" checked>
-              <span>执行 Agent</span>
-            </label>
+      <section class="stats section" aria-label="压测数据">
+        <div>
+          <span>GET /health QPS</span>
+          <strong>261.16</strong>
+        </div>
+        <div>
+          <span>POST /api/tasks QPS</span>
+          <strong>146.09</strong>
+        </div>
+        <div>
+          <span>任务成功率</span>
+          <strong>100%</strong>
+        </div>
+        <div>
+          <span>P95 延迟</span>
+          <strong>668ms</strong>
+        </div>
+      </section>
+
+      <section id="architecture" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Architecture</p>
+          <h2>从用户任务到可审计执行结果</h2>
+        </div>
+        <div class="architecture">
+          <div class="arch-node">CLI / Web / API</div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-node strong">FastAPI Server</div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-grid">
+            <div>LangGraph Agent</div>
+            <div>Chroma Retrieval</div>
+            <div>SQLite Tasks</div>
+            <div>Safe Tools</div>
+            <div>MCP Server</div>
+            <div>Prometheus</div>
           </div>
-          <form id="task-form">
+        </div>
+      </section>
+
+      <section id="demo" class="section demo-shell">
+        <div class="section-heading">
+          <p class="eyebrow">Online Demo</p>
+          <h2>只读安全演示控制台</h2>
+          <p>公网 Demo 只展示检索、轨迹、工具日志和 Patch Preview，不执行真实写文件或高风险 Shell。</p>
+        </div>
+
+        <div class="demo-layout">
+          <aside class="demo-panel">
             <label>
-              仓库路径
-              <input id="repo-path" name="repo_path" type="text" placeholder="/data/niewenjie/CodePilot">
+              示例仓库
+              <select id="repo-select"></select>
             </label>
+            <div id="repo-summary" class="repo-summary"></div>
             <label>
-              任务描述
-              <textarea id="task-request" name="user_request" rows="6" placeholder="请运行测试并总结结果"></textarea>
+              自然语言任务
+              <textarea id="task-input" rows="8">请分析 POST /api/tasks 接口从请求进入到数据库写入的完整流程。</textarea>
             </label>
-            <div class="actions">
-              <button type="submit" class="primary">提交任务</button>
-              <button type="button" id="index-button">构建索引</button>
+            <div id="prompt-buttons" class="prompt-buttons"></div>
+            <button id="run-demo" class="primary full" type="button">运行 Demo 任务</button>
+          </aside>
+
+          <section class="timeline-panel">
+            <div class="panel-title">
+              <h3>Agent 执行轨迹</h3>
+              <span id="task-status" class="status-tag">等待任务</span>
             </div>
+            <div id="live-timeline" class="timeline">
+              <div class="empty-state">提交任务后，这里会实时展示 Thought / Action / Observation / Final。</div>
+            </div>
+          </section>
+
+          <aside class="result-panel">
+            <div class="tabs" role="tablist" aria-label="结果视图">
+              <button class="tab active" type="button" data-tab="context">上下文</button>
+              <button class="tab" type="button" data-tab="tools">工具</button>
+              <button class="tab" type="button" data-tab="diff">Diff</button>
+            </div>
+            <div id="context-view" class="tab-view active"></div>
+            <div id="tools-view" class="tab-view"></div>
+            <pre id="diff-view" class="tab-view code-block"></pre>
+          </aside>
+        </div>
+      </section>
+
+      <section id="retrieval" class="section">
+        <div class="section-heading inline-heading">
+          <div>
+            <p class="eyebrow">Code Retrieval</p>
+            <h2>代码语义检索展示</h2>
+          </div>
+          <form id="search-form" class="search-box">
+            <input id="search-input" type="search" value="Prometheus 指标在哪里暴露？" aria-label="检索问题">
+            <button type="submit">检索</button>
           </form>
         </div>
-
-        <div class="panel result-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Result</p>
-              <h2>执行结果</h2>
-            </div>
-            <button type="button" id="refresh-button">刷新</button>
-          </div>
-          <pre id="result-view">等待操作...</pre>
-        </div>
+        <div id="retrieval-results" class="retrieval-grid"></div>
       </section>
 
-      <section id="tasks" class="panel">
-        <div class="panel-heading">
+      <section id="trace" class="section split-section">
+        <div>
+          <p class="eyebrow">ReAct Trace</p>
+          <h2>把 Agent 如何工作展示出来</h2>
+          <p>
+            轨迹页面不只展示最终回答，而是展示 Agent 如何理解任务、召回上下文、调用工具、解析 Observation
+            并生成最终总结。面试官可以直接看到系统设计而不是只看到聊天框。
+          </p>
+        </div>
+        <div id="trace-sample" class="timeline compact"></div>
+      </section>
+
+      <section id="metrics" class="section">
+        <div class="section-heading inline-heading">
           <div>
-            <p class="eyebrow">Tasks</p>
-            <h2>最近任务</h2>
+            <p class="eyebrow">Observability</p>
+            <h2>监控与压测结果</h2>
           </div>
-          <span class="muted">最多显示 20 条</span>
+          <div class="link-row">
+            <a class="button" href="/metrics" target="_blank" rel="noreferrer">Prometheus</a>
+            <a class="button" href="/docs" target="_blank" rel="noreferrer">OpenAPI</a>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>状态</th>
-                <th>请求</th>
-                <th>更新时间</th>
-              </tr>
-            </thead>
-            <tbody id="task-table">
-              <tr>
-                <td colspan="4">暂无数据</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="ops" class="ops-grid">
-        <a class="op-link" href="/health" target="_blank" rel="noreferrer">
-          <strong>Health</strong>
-          <span>查看服务健康状态</span>
-        </a>
-        <a class="op-link" href="/metrics" target="_blank" rel="noreferrer">
-          <strong>Prometheus</strong>
-          <span>查看指标输出</span>
-        </a>
-        <a class="op-link" href="/docs" target="_blank" rel="noreferrer">
-          <strong>OpenAPI</strong>
-          <span>调试后端接口</span>
-        </a>
+        <div id="metrics-grid" class="metrics-grid"></div>
       </section>
     </main>
+
+    <footer class="footer">
+      <span>Demo Mode 默认只读运行。Local Mode 可在本地 clone 后开启真实文件操作、Shell 和 Git Diff。</span>
+    </footer>
 
     <script src="/static/app.js"></script>
   </body>
