@@ -1,0 +1,12 @@
+services:
+  redis:
+    image: docker.m.daocloud.io/library/redis:7-alpine
+
+  prometheus:
+    image: docker.m.daocloud.io/prom/prometheus:v2.55.1
+
+  grafana:
+    image: docker.m.daocloud.io/grafana/grafana:11.3.0
+
+  nginx:
+    image: daocloud.io/nginx:latest

@@ -1,0 +1,2 @@
+name: fastapi_api_generator
+description: Generate FastAPI route, schema, and test scaffolding.

@@ -1,0 +1,2 @@
+name: pytest_debugger
+description: Diagnose pytest failures and suggest the smallest fix.
