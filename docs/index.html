@@ -13,9 +13,10 @@
         <span>CodePilot</span>
       </a>
       <nav class="nav-links" aria-label="主导航">
+        <a href="#capabilities">Capabilities</a>
         <a href="#demo">Demo</a>
-        <a href="#retrieval">Retrieval</a>
-        <a href="#trace">Trace</a>
+        <a href="#security">Security</a>
+        <a href="#deployment">Deploy</a>
         <a href="#metrics">Metrics</a>
         <a href="https://github.com/CozyOct1/codepilot" target="_blank" rel="noreferrer">GitHub</a>
       </nav>
@@ -34,6 +35,13 @@
             CodePilot 将仓库索引、LangGraph Agent 编排、ReAct 执行轨迹、安全工具调用、MCP Server
             和 Prometheus 监控整合到一条可追踪的本地开发链路中。
           </p>
+          <div class="hero-badges" aria-label="项目技术栈">
+            <span>FastAPI</span>
+            <span>LangGraph</span>
+            <span>Chroma</span>
+            <span>MCP</span>
+            <span>Prometheus</span>
+          </div>
           <div class="hero-actions">
             <a class="button primary" href="#demo">立即体验 Demo</a>
             <a class="button" href="https://github.com/CozyOct1/codepilot" target="_blank" rel="noreferrer">查看 GitHub</a>
@@ -41,6 +49,10 @@
           </div>
         </div>
         <div class="hero-console" aria-label="Agent 执行摘要">
+          <div class="console-label">
+            <span>Run #042</span>
+            <strong>completed</strong>
+          </div>
           <div class="console-top">
             <span></span><span></span><span></span>
           </div>
@@ -50,6 +62,21 @@
             <p><b>Observation</b> main.py / database.py / graph.py</p>
             <p><b>Final</b> 输出调用链、风险边界和优化建议</p>
           </div>
+        </div>
+      </section>
+
+      <section class="project-strip section" aria-label="项目状态">
+        <div>
+          <span>Mode</span>
+          <strong>Local-first Agent</strong>
+        </div>
+        <div>
+          <span>Demo Safety</span>
+          <strong>Read-only Preview</strong>
+        </div>
+        <div>
+          <span>Interfaces</span>
+          <strong>CLI / API / Web / MCP</strong>
         </div>
       </section>
 
@@ -72,23 +99,74 @@
         </div>
       </section>
 
-      <section id="architecture" class="section">
+      <section id="capabilities" class="section">
         <div class="section-heading">
-          <p class="eyebrow">Architecture</p>
-          <h2>从用户任务到可审计执行结果</h2>
+          <p class="eyebrow">Capabilities</p>
+          <h2>围绕代码仓库 Agent 的完整工程链路</h2>
+          <p>CodePilot 不是单一聊天框，而是把仓库上下文、任务执行、安全边界和可观测数据组织成可审计的开发系统。</p>
         </div>
-        <div class="architecture">
-          <div class="arch-node">CLI / Web / API</div>
-          <div class="arch-arrow">↓</div>
-          <div class="arch-node strong">FastAPI Server</div>
-          <div class="arch-arrow">↓</div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span>01</span>
+            <h3>仓库索引与语义检索</h3>
+            <p>解析 Python、Markdown、JSON、YAML、前端源码等文本文件，写入 Chroma，并为 Agent 任务召回 Top-K 代码上下文。</p>
+          </article>
+          <article class="feature-card">
+            <span>02</span>
+            <h3>LangGraph 任务编排</h3>
+            <p>将 retrieve、plan、execute 拆成结构化节点，显式展示上下文检索、记忆注入、计划生成和工具调用。</p>
+          </article>
+          <article class="feature-card">
+            <span>03</span>
+            <h3>ReAct 执行轨迹</h3>
+            <p>记录 Thought / Action / Observation / Final，方便复盘 Agent 为什么这么做、调用了什么工具、结果如何。</p>
+          </article>
+          <article class="feature-card">
+            <span>04</span>
+            <h3>安全工具调用层</h3>
+            <p>文件访问限定在目标仓库内，Shell 命令基于允许列表执行，并拦截 sudo、rm、curl、wget 等高风险 token。</p>
+          </article>
+          <article class="feature-card">
+            <span>05</span>
+            <h3>任务持久化与记忆</h3>
+            <p>使用 SQLite + SQLModel 存储会话、任务、消息和工具调用；结合短期记忆和长期记忆提升多轮连续性。</p>
+          </article>
+          <article class="feature-card">
+            <span>06</span>
+            <h3>MCP 与可观测性</h3>
+            <p>通过 MCP Server 暴露工具能力，并用 Prometheus 记录任务数量、工具调用耗时和接口性能指标。</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="architecture" class="section">
+        <div class="section-heading inline-heading">
+          <div>
+            <p class="eyebrow">Architecture</p>
+            <h2>从用户任务到可审计执行结果</h2>
+          </div>
+          <a class="button" href="https://github.com/CozyOct1/codepilot#文件目录说明" target="_blank" rel="noreferrer">查看源码结构</a>
+        </div>
+        <div class="architecture mature-arch">
+          <div class="arch-stage">
+            <strong>Client Layer</strong>
+            <span>CLI / Web Console / HTTP API / MCP Client</span>
+          </div>
+          <div class="arch-stage">
+            <strong>Server Layer</strong>
+            <span>FastAPI routes, schemas, sessions, task persistence</span>
+          </div>
+          <div class="arch-stage emphasized">
+            <strong>Agent Runtime</strong>
+            <span>LangGraph workflow, ReAct loop, memory injection, instructions loader</span>
+          </div>
           <div class="arch-grid">
-            <div>LangGraph Agent</div>
             <div>Chroma Retrieval</div>
-            <div>SQLite Tasks</div>
-            <div>Safe Tools</div>
+            <div>SQLite / SQLModel</div>
+            <div>Safe FS / Shell / Git</div>
             <div>MCP Server</div>
-            <div>Prometheus</div>
+            <div>Prometheus Metrics</div>
+            <div>Docker / Nginx</div>
           </div>
         </div>
       </section>
@@ -138,6 +216,43 @@
         </div>
       </section>
 
+      <section id="security" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Safety Design</p>
+          <h2>公网 Demo 与本地完整模式明确隔离</h2>
+          <p>Agent 项目最容易被质疑的是安全边界。CodePilot 在线页直接展示 Demo Mode 的限制，说明哪些能力只在本地授权环境开放。</p>
+        </div>
+        <div class="security-grid">
+          <article>
+            <h3>Demo Mode</h3>
+            <ul>
+              <li>只读示例仓库，不接受任意本地路径</li>
+              <li>展示工具调用日志，但不执行真实危险 Shell</li>
+              <li>文件修改以 Patch Preview 展示，需要人工审批</li>
+              <li>LLM API Key 只存在服务端，本页面不暴露密钥</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Local Mode</h3>
+            <ul>
+              <li>用户在本机 clone 后运行完整 Agent 能力</li>
+              <li>工具层限制仓库根目录，阻断越权路径访问</li>
+              <li>Shell 命令基于允许列表，并拦截高风险 token</li>
+              <li>任务、工具调用和结果写入 SQLite 便于复盘</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Production Direction</h3>
+            <ul>
+              <li>仓库 workspace 隔离，按 repo_id 访问</li>
+              <li>Redis 队列异步执行索引和 Agent 任务</li>
+              <li>任务超时、步数限制、IP 限流和审计日志</li>
+              <li>容器沙箱执行测试或构建任务</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
       <section id="retrieval" class="section">
         <div class="section-heading inline-heading">
           <div>
@@ -164,6 +279,35 @@
         <div id="trace-sample" class="timeline compact"></div>
       </section>
 
+      <section id="deployment" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Deployment</p>
+          <h2>本地优先，支持容器化部署与在线展示</h2>
+        </div>
+        <div class="deploy-grid">
+          <div class="deploy-card">
+            <span>01</span>
+            <h3>GitHub Pages</h3>
+            <p>当前站点是纯静态 Demo，用于展示项目价值、架构、交互样例和压测数据。</p>
+          </div>
+          <div class="deploy-card">
+            <span>02</span>
+            <h3>FastAPI Runtime</h3>
+            <p>后端服务提供任务创建、仓库索引、代码问答、任务历史、健康检查和 Prometheus 指标。</p>
+          </div>
+          <div class="deploy-card">
+            <span>03</span>
+            <h3>Docker Compose</h3>
+            <p>部署 Redis、Prometheus、Grafana、Nginx 等基础组件，贴近真实工程环境。</p>
+          </div>
+          <div class="deploy-card">
+            <span>04</span>
+            <h3>Next Step</h3>
+            <p>接入在线 FastAPI Demo、SSE 实时事件、PostgreSQL、任务队列和容器沙箱。</p>
+          </div>
+        </div>
+      </section>
+
       <section id="metrics" class="section">
         <div class="section-heading inline-heading">
           <div>
@@ -176,6 +320,35 @@
           </div>
         </div>
         <div id="metrics-grid" class="metrics-grid"></div>
+      </section>
+
+      <section class="section roadmap-section">
+        <div class="section-heading">
+          <p class="eyebrow">Roadmap</p>
+          <h2>从项目展示到可在线体验的 Agent 平台</h2>
+        </div>
+        <div class="roadmap">
+          <div class="done">
+            <span>Done</span>
+            <strong>静态官网与 Demo 控制台</strong>
+            <p>项目介绍、检索展示、Agent 轨迹、工具日志、Patch Preview、压测数据。</p>
+          </div>
+          <div class="done">
+            <span>Done</span>
+            <strong>本地 FastAPI + Agent Runtime</strong>
+            <p>本地仓库索引、问答、任务持久化、安全工具调用和 Prometheus 指标。</p>
+          </div>
+          <div>
+            <span>Next</span>
+            <strong>真实在线 Demo API</strong>
+            <p>固定示例仓库、SSE 任务事件、只读执行链路和后端限流。</p>
+          </div>
+          <div>
+            <span>Next</span>
+            <strong>多用户仓库工作区</strong>
+            <p>GitHub URL 导入、repo_id 隔离、Redis 队列和容器沙箱。</p>
+          </div>
+        </div>
       </section>
     </main>
 
