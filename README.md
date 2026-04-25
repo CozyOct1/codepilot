@@ -43,6 +43,7 @@
   - [安装步骤](#安装步骤)
   - [基础使用](#基础使用)
 - [项目功能](#项目功能)
+- [配置说明](#配置说明)
 - [文件目录说明](#文件目录说明)
 - [开发的架构](#开发的架构)
 - [HTTP API](#http-api)
@@ -144,13 +145,53 @@ uv run codepilot tasks --repo .
 | --- | --- |
 | CLI 工作流 | 初始化、索引、问答、任务执行、测试、Diff、任务列表、远程 API 调用 |
 | HTTP API | 健康检查、指标、会话创建、任务创建/查询、聊天任务、仓库索引 |
-| Agent 编排 | 基于 LangGraph 串联检索、计划生成和执行阶段 |
+| Web 控制台 | 通过 FastAPI 首页提供任务创建、索引构建、任务列表、服务状态和指标入口 |
+| Agent 编排 | 基于 LangGraph 串联检索、记忆注入、ReAct 计划生成和安全工具执行阶段 |
+| LLM 接口 | 支持 OpenAI、DeepSeek、Qwen 和 OpenAI Compatible API，未配置 Key 时自动离线兜底 |
+| 短期记忆 | 使用滑动窗口保留最近对话，并将溢出内容压缩到本地摘要文件 |
+| 长期记忆 | 使用 Chroma 本地向量库持久化任务结果，后续任务会按语义相似度召回历史经验 |
 | 仓库索引 | 使用 Chroma 持久化本地索引，支持 Python、Markdown、JSON、YAML、前端源码等文本文件 |
-| 离线运行 | 未配置 `OPENAI_API_KEY` 时使用确定性兜底计划，保证测试和演示可运行 |
+| 离线运行 | 未配置 LLM API Key 时使用确定性兜底计划，保证测试和演示可运行 |
 | 数据持久化 | 使用 SQLite、SQLModel、SQLAlchemy 存储会话、任务、消息、工具调用和文件变更 |
 | 安全工具层 | 文件访问限制在仓库内，Shell 命令使用允许列表并阻断高风险 token |
 | 可观测性 | 暴露 Prometheus 格式指标，记录任务数量、工具调用次数和工具耗时 |
 | 本地部署 | 提供 Redis、Prometheus、Grafana、Nginx 的 Docker Compose 配置 |
+
+## 配置说明
+
+CodePilot 会读取项目根目录下的 `.env` 文件。
+
+```env
+CODEPILOT_LLM_PROVIDER=openai
+CODEPILOT_MODEL=gpt-4o-mini
+CODEPILOT_API_KEY=
+CODEPILOT_BASE_URL=
+OPENAI_API_KEY=
+DEEPSEEK_API_KEY=
+DASHSCOPE_API_KEY=
+CODEPILOT_CHROMA_PATH=./storage/chroma
+CODEPILOT_MEMORY_PATH=./storage/memory
+CODEPILOT_SHORT_MEMORY_WINDOW=6
+CODEPILOT_SHORT_MEMORY_MAX_CHARS=4000
+CODEPILOT_DATABASE_URL=sqlite:///./.codepilot/codepilot.db
+CODEPILOT_HOST=0.0.0.0
+CODEPILOT_PORT=8001
+```
+
+LLM Provider 说明：
+
+| Provider | 配置值 | 默认模型 | 说明 |
+| --- | --- | --- | --- |
+| OpenAI | `openai` | `gpt-4o-mini` | 默认 OpenAI 接口 |
+| DeepSeek | `deepseek` | `deepseek-chat` | 使用 OpenAI Compatible 调用方式 |
+| Qwen | `qwen` | `qwen-plus` | 使用 DashScope OpenAI Compatible 调用方式 |
+| 自定义兼容接口 | `openai_compatible` | `CODEPILOT_MODEL` | 需要同时配置 `CODEPILOT_BASE_URL` |
+| 离线模式 | `offline` | 无 | 不调用外部 LLM，使用确定性计划 |
+
+记忆说明：
+
+- 短期记忆保存到 `CODEPILOT_MEMORY_PATH/short_term.json`，超过窗口大小后压缩为摘要。
+- 长期记忆保存到 Chroma 持久化集合中，任务完成后写入，请求开始时按用户问题召回。
 
 ## 文件目录说明
 
@@ -162,7 +203,7 @@ CodePilot
 │   ├── core/           配置、数据库、指标、Redis 辅助模块
 │   ├── indexer/        仓库索引与检索
 │   ├── mcp_server/     MCP 工具服务
-│   ├── server/         FastAPI 应用和请求模型
+│   ├── server/         FastAPI 应用、请求模型和 Web 控制台静态资源
 │   ├── tools/          文件系统、Shell、Git、安全工具
 │   └── workers/        Worker 入口
 ├── deploy/             Docker Compose、Nginx、Prometheus 配置
@@ -188,6 +229,12 @@ CodePilot
 
 ```bash
 uv run codepilot serve --host 0.0.0.0 --port 8001
+```
+
+Web 控制台：
+
+```text
+http://127.0.0.1:8001/
 ```
 
 健康检查：
@@ -335,6 +382,14 @@ uv run python scripts/load_test.py --endpoint tasks --requests 300 --concurrency
 - [Prometheus Client](https://github.com/prometheus/client_python)
 - [pytest](https://docs.pytest.org/)
 - [Docker Compose](https://docs.docker.com/compose/)
+
+## 当前限制
+
+- ReAct 执行阶段目前只开放安全动作：查看 Git 状态、运行测试、查看 Diff 和结束任务。
+- 长期记忆使用本地 Hash Embedding，适合离线演示和基础召回，不等同于生产级语义向量模型。
+- 多 LLM 接口统一走 OpenAI Compatible Chat API，不兼容该协议的供应商需要新增适配器。
+- SQLite 适合单机 MVP 和轻量并发写入，更高并发或多实例部署建议迁移到 PostgreSQL。
+- `run=true` 会进入 Agent 执行链路，可能包含索引检索、测试执行和外部 LLM 调用，不适合直接作为稳定接口压测目标。
 
 
 ## 版权说明

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CodePilot Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/static/logo.png" alt="CodePilot Logo">
+        <div>
+          <strong>CodePilot</strong>
+          <span>Private Repo Agent</span>
+        </div>
+      </div>
+      <nav>
+        <a href="#workspace" class="active">工作台</a>
+        <a href="#tasks">任务</a>
+        <a href="#ops">运维</a>
+        <a href="/docs" target="_blank" rel="noreferrer">API Docs</a>
+        <a href="/metrics" target="_blank" rel="noreferrer">Metrics</a>
+      </nav>
+    </aside>
+
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local Agent Console</p>
+          <h1>CodePilot 控制台</h1>
+        </div>
+        <div class="status-strip">
+          <span id="health-dot" class="dot pending"></span>
+          <span id="health-text">检查服务中</span>
+        </div>
+      </header>
+
+      <section class="metric-grid" aria-label="服务概览">
+        <div class="metric">
+          <span>服务状态</span>
+          <strong id="service-status">-</strong>
+        </div>
+        <div class="metric">
+          <span>最近任务</span>
+          <strong id="task-count">0</strong>
+        </div>
+        <div class="metric">
+          <span>完成任务</span>
+          <strong id="completed-count">0</strong>
+        </div>
+        <div class="metric">
+          <span>失败任务</span>
+          <strong id="failed-count">0</strong>
+        </div>
+      </section>
+
+      <section id="workspace" class="workspace">
+        <div class="panel task-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Create Task</p>
+              <h2>创建 Agent 任务</h2>
+            </div>
+            <label class="toggle">
+              <input id="run-agent" type="checkbox" checked>
+              <span>执行 Agent</span>
+            </label>
+          </div>
+          <form id="task-form">
+            <label>
+              仓库路径
+              <input id="repo-path" name="repo_path" type="text" placeholder="/data/niewenjie/CodePilot">
+            </label>
+            <label>
+              任务描述
+              <textarea id="task-request" name="user_request" rows="6" placeholder="请运行测试并总结结果"></textarea>
+            </label>
+            <div class="actions">
+              <button type="submit" class="primary">提交任务</button>
+              <button type="button" id="index-button">构建索引</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel result-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Result</p>
+              <h2>执行结果</h2>
+            </div>
+            <button type="button" id="refresh-button">刷新</button>
+          </div>
+          <pre id="result-view">等待操作...</pre>
+        </div>
+      </section>
+
+      <section id="tasks" class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Tasks</p>
+            <h2>最近任务</h2>
+          </div>
+          <span class="muted">最多显示 20 条</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>状态</th>
+                <th>请求</th>
+                <th>更新时间</th>
+              </tr>
+            </thead>
+            <tbody id="task-table">
+              <tr>
+                <td colspan="4">暂无数据</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="ops" class="ops-grid">
+        <a class="op-link" href="/health" target="_blank" rel="noreferrer">
+          <strong>Health</strong>
+          <span>查看服务健康状态</span>
+        </a>
+        <a class="op-link" href="/metrics" target="_blank" rel="noreferrer">
+          <strong>Prometheus</strong>
+          <span>查看指标输出</span>
+        </a>
+        <a class="op-link" href="/docs" target="_blank" rel="noreferrer">
+          <strong>OpenAPI</strong>
+          <span>调试后端接口</span>
+        </a>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

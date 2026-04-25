@@ -29,8 +29,19 @@ TEXT_SUFFIXES = {
 class HashEmbedding(EmbeddingFunction[Documents]):
     """Deterministic lightweight embeddings for local/offline indexing."""
 
-    def name(self) -> str:
+    def __init__(self) -> None:
+        pass
+
+    @staticmethod
+    def name() -> str:
         return "codepilot_hash_embedding"
+
+    def get_config(self) -> dict[str, object]:
+        return {}
+
+    @staticmethod
+    def build_from_config(config: dict[str, object]) -> "HashEmbedding":
+        return HashEmbedding()
 
     def __call__(self, input: Documents) -> Embeddings:
         vectors: list[list[float]] = []

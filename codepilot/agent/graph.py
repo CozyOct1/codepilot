@@ -1,20 +1,19 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import TypedDict
 
-from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 from sqlalchemy import Engine
 from sqlmodel import Session
 
+from codepilot.agent.llm import get_llm_client
+from codepilot.agent.memory import LongTermMemory, ShortTermMemory
+from codepilot.agent.react import format_react_trace, run_react_loop
 from codepilot.core.config import get_settings
 from codepilot.core.database import Task, update_task
 from codepilot.core.metrics import TASKS_TOTAL
 from codepilot.indexer.repo import search_repository
-from codepilot.tools.git import diff, status
-from codepilot.tools.shell import run_command
 
 
 class AgentState(TypedDict, total=False):
@@ -22,38 +21,60 @@ class AgentState(TypedDict, total=False):
     repo_path: str
     user_request: str
     context: list[dict[str, str]]
+    long_term_memory: list[dict[str, str]]
+    short_term_memory: str
     plan: str
+    react_trace: str
     result_summary: str
     error_message: str
 
 
 def retrieve(state: AgentState) -> AgentState:
     settings = get_settings(state["repo_path"])
-    state["context"] = search_repository(Path(state["repo_path"]), settings.chroma_path, state["user_request"], limit=5)
+    repo = Path(state["repo_path"])
+    state["context"] = search_repository(repo, settings.chroma_path, state["user_request"], limit=5)
+    state["long_term_memory"] = LongTermMemory(settings.memory_path, repo).search(state["user_request"], limit=4)
+    short_memory = ShortTermMemory.load(
+        settings.memory_path,
+        window_size=settings.short_memory_window,
+        max_chars=settings.short_memory_max_chars,
+    )
+    state["short_term_memory"] = short_memory.render()
     return state
 
 
 def plan(state: AgentState) -> AgentState:
+    settings = get_settings(state["repo_path"])
     context = "\n\n".join(f"FILE: {item['path']}\n{item['content'][:1200]}" for item in state.get("context", []))
-    fallback = (
-        "Plan:\n"
-        "1. Inspect retrieved repository context.\n"
-        "2. Identify the files related to the request.\n"
-        "3. Make minimal code changes with explicit user approval for destructive edits.\n"
-        "4. Run the configured tests and summarize the result.\n\n"
-        f"Relevant files:\n{', '.join(item['path'] for item in state.get('context', [])) or 'none'}"
+    long_memory = "\n\n".join(
+        f"TASK: {item.get('task_id', '')}\n{item.get('content', '')[:1200]}"
+        for item in state.get("long_term_memory", [])
     )
-    if not os.getenv("OPENAI_API_KEY"):
+    short_memory = state.get("short_term_memory", "")
+    fallback = (
+        "ReAct Plan:\n"
+        "Thought: inspect repository context, short-term memory, and long-term memory before acting.\n"
+        "Action candidates: git_status, run_tests when the request asks for tests, git_diff when the request asks for changes.\n"
+        "Observation handling: summarize each tool result and persist useful outcomes back into memory.\n\n"
+        f"Relevant files: {', '.join(item['path'] for item in state.get('context', [])) or 'none'}\n"
+        f"Long-term memory hits: {len(state.get('long_term_memory', []))}\n"
+        f"Short-term memory available: {'yes' if short_memory else 'no'}"
+    )
+    llm = get_llm_client(settings)
+    if not llm.available:
         state["plan"] = fallback
         return state
     try:
-        llm = ChatOpenAI(model=os.getenv("CODEPILOT_MODEL", "gpt-4o-mini"), timeout=30)
-        message = llm.invoke(
+        response = llm.invoke_text(
             "You are CodePilot. Produce a concise implementation plan. "
-            "Do not include secrets. Do not invent files.\n\n"
-            f"Request:\n{state['user_request']}\n\nContext:\n{context}"
+            "Use the ReAct pattern with Thought, Action, Observation, Final sections. "
+            "Do not include secrets. Do not invent files or tool results.\n\n"
+            f"Request:\n{state['user_request']}\n\n"
+            f"Short-term memory:\n{short_memory or 'none'}\n\n"
+            f"Long-term memory:\n{long_memory or 'none'}\n\n"
+            f"Repository context:\n{context or 'none'}"
         )
-        state["plan"] = str(message.content)
+        state["plan"] = response or fallback
     except Exception as exc:
         state["plan"] = fallback + f"\n\nLLM planning unavailable: {exc}"
     return state
@@ -61,19 +82,29 @@ def plan(state: AgentState) -> AgentState:
 
 def execute(state: AgentState) -> AgentState:
     repo = Path(state["repo_path"])
-    lower = state["user_request"].lower()
-    summary_parts: list[str] = []
-    summary_parts.append("Repository status:\n" + str(status(repo).get("stdout", "")))
-    if any(token in lower for token in ["test", "pytest", "测试"]):
-        result = run_command(repo, "uv run pytest", timeout=120)
-        summary_parts.append(
-            f"Test command exited {result['exit_code']}.\nSTDOUT:\n{result['stdout']}\nSTDERR:\n{result['stderr']}"
-        )
-    if any(token in lower for token in ["diff", "差异", "变更"]):
-        summary_parts.append("Diff:\n" + str(diff(repo).get("stdout", "")))
-    if not summary_parts:
-        summary_parts.append("No mutating action was performed. Use a concrete edit request after reviewing the plan.")
-    state["result_summary"] = "\n\n".join(summary_parts)
+    steps = run_react_loop(repo, state["user_request"])
+    trace = format_react_trace(steps)
+    state["react_trace"] = trace
+    state["result_summary"] = (
+        "ReAct execution trace:\n\n"
+        f"{trace}\n\n"
+        "Final: task completed with the available safe tools. "
+        "Use a concrete edit request when code changes are required."
+    )
+    settings = get_settings(repo)
+    short_memory = ShortTermMemory.load(
+        settings.memory_path,
+        window_size=settings.short_memory_window,
+        max_chars=settings.short_memory_max_chars,
+    )
+    short_memory.add_turn("user", state["user_request"])
+    short_memory.add_turn("assistant", state["result_summary"])
+    short_memory.save()
+    LongTermMemory(settings.memory_path, repo).add(
+        state["task_id"],
+        state["user_request"],
+        state["result_summary"],
+    )
     return state
 
 

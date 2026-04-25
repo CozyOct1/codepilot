@@ -25,8 +25,15 @@ class Settings:
     database_url: str
     redis_url: str
     chroma_path: Path
+    memory_path: Path
     host: str
     port: int
+    llm_provider: str
+    llm_model: str
+    llm_api_key: str | None
+    llm_base_url: str | None
+    short_memory_window: int
+    short_memory_max_chars: int
     langsmith_tracing: str
     langsmith_project: str
 
@@ -66,14 +73,32 @@ def get_settings(repo_path: str | Path | None = None) -> Settings:
     chroma_path = Path(os.getenv("CODEPILOT_CHROMA_PATH", "./storage/chroma"))
     if not chroma_path.is_absolute():
         chroma_path = root / chroma_path
+    memory_path = Path(os.getenv("CODEPILOT_MEMORY_PATH", "./storage/memory"))
+    if not memory_path.is_absolute():
+        memory_path = root / memory_path
+    llm_provider = os.getenv("CODEPILOT_LLM_PROVIDER", "openai").lower()
+    llm_api_key = (
+        os.getenv("CODEPILOT_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("DEEPSEEK_API_KEY")
+        or os.getenv("DASHSCOPE_API_KEY")
+        or os.getenv("QWEN_API_KEY")
+    )
     return Settings(
         repo_path=Path(project_config.get("repo_path", root)).resolve(),
         project_dir=project_dir,
         database_url=database_url,
         redis_url=redis_url,
         chroma_path=chroma_path.resolve(),
+        memory_path=memory_path.resolve(),
         host=os.getenv("CODEPILOT_HOST", "0.0.0.0"),
         port=int(os.getenv("CODEPILOT_PORT", "8001")),
+        llm_provider=llm_provider,
+        llm_model=os.getenv("CODEPILOT_MODEL", "gpt-4o-mini"),
+        llm_api_key=llm_api_key,
+        llm_base_url=os.getenv("CODEPILOT_BASE_URL"),
+        short_memory_window=int(os.getenv("CODEPILOT_SHORT_MEMORY_WINDOW", "6")),
+        short_memory_max_chars=int(os.getenv("CODEPILOT_SHORT_MEMORY_MAX_CHARS", "4000")),
         langsmith_tracing=os.getenv("LANGSMITH_TRACING", "false"),
         langsmith_project=os.getenv("LANGSMITH_PROJECT", "codepilot"),
     )
