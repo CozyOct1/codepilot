@@ -133,6 +133,12 @@ uv run codepilot test --repo .
 uv run codepilot diff --repo .
 ```
 
+查看会注入 Agent 计划的项目指令：
+
+```bash
+uv run codepilot instructions --repo .
+```
+
 查看任务历史：
 
 ```bash
@@ -150,6 +156,7 @@ uv run codepilot tasks --repo .
 | LLM 接口 | 支持 OpenAI、DeepSeek、Qwen 和 OpenAI Compatible API，未配置 Key 时自动离线兜底 |
 | 短期记忆 | 使用滑动窗口保留最近对话，并将溢出内容压缩到本地摘要文件 |
 | 长期记忆 | 使用 Chroma 本地向量库持久化任务结果，后续任务会按语义相似度召回历史经验 |
+| 项目指令 | 自动读取 `CLAUDE.md`、`AGENTS.md`、`CODEPILOT.md` 和 `.codepilot/instructions.md` 并注入 Agent 计划 |
 | 仓库索引 | 使用 Chroma 持久化本地索引，支持 Python、Markdown、JSON、YAML、前端源码等文本文件 |
 | 离线运行 | 未配置 LLM API Key 时使用确定性兜底计划，保证测试和演示可运行 |
 | 数据持久化 | 使用 SQLite、SQLModel、SQLAlchemy 存储会话、任务、消息、工具调用和文件变更 |
@@ -193,12 +200,19 @@ LLM Provider 说明：
 - 短期记忆保存到 `CODEPILOT_MEMORY_PATH/short_term.json`，超过窗口大小后压缩为摘要。
 - 长期记忆保存到 Chroma 持久化集合中，任务完成后写入，请求开始时按用户问题召回。
 
+项目指令说明：
+
+- CodePilot 会在 Agent 规划前自动读取 `CLAUDE.md`、`AGENTS.md`、`CODEPILOT.md` 和 `.codepilot/instructions.md`。
+- 指令文件用于沉淀仓库级开发规范，例如代码风格、测试要求、安全边界和协作规则。
+- 单个指令文件最多读取 64 KB，超出部分会截断，避免上下文无限膨胀。
+- 可以使用 `uv run codepilot instructions --repo .` 查看当前会注入计划的指令内容。
+
 ## 文件目录说明
 
 ```text
 CodePilot
 ├── codepilot/
-│   ├── agent/          LangGraph Agent 工作流
+│   ├── agent/          LangGraph Agent 工作流、记忆和项目指令注入
 │   ├── cli/            Typer 命令行入口
 │   ├── core/           配置、数据库、指标、Redis 辅助模块
 │   ├── indexer/        仓库索引与检索

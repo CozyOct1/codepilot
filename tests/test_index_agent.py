@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sqlmodel import Session
 
+from codepilot.agent.instructions import load_project_instructions, render_project_instructions
 from codepilot.agent.llm import get_llm_client
 from codepilot.agent.graph import run_agent_task
 from codepilot.agent.memory import LongTermMemory, ShortTermMemory
@@ -24,6 +25,7 @@ def test_agent_runs_offline(tmp_path, monkeypatch):
     monkeypatch.setenv("CODEPILOT_LLM_PROVIDER", "offline")
     write_project_config(tmp_path)
     (tmp_path / "README.md").write_text("Demo repository", encoding="utf-8")
+    (tmp_path / "CLAUDE.md").write_text("Always mention the safety model.", encoding="utf-8")
     settings = get_settings(tmp_path)
     engine = create_db_engine(settings)
     init_db(engine)
@@ -33,6 +35,7 @@ def test_agent_runs_offline(tmp_path, monkeypatch):
     result = run_agent_task(task_id, tmp_path, "请解释这个项目", engine)
     assert result.status == "completed"
     assert result.plan
+    assert "Project instructions available: yes" in result.plan
     assert "ReAct execution trace" in (result.result_summary or "")
     assert (settings.memory_path / "short_term.json").exists()
     assert LongTermMemory(settings.memory_path, tmp_path).search("Demo repository")
@@ -51,6 +54,31 @@ def test_short_term_memory_compresses(tmp_path):
     assert len(restored.turns) == 2
     assert "first" in restored.summary
     assert "third" in restored.render()
+
+
+def test_project_instructions_loads_known_files_in_order(tmp_path):
+    (tmp_path / "AGENTS.md").write_text("Use pytest.", encoding="utf-8")
+    (tmp_path / "CLAUDE.md").write_text("Prefer small diffs.", encoding="utf-8")
+    (tmp_path / ".codepilot").mkdir()
+    (tmp_path / ".codepilot" / "instructions.md").write_text("Local CodePilot rule.", encoding="utf-8")
+
+    instructions = load_project_instructions(tmp_path)
+    assert [item.path for item in instructions] == [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".codepilot/instructions.md",
+    ]
+    rendered = render_project_instructions(instructions)
+    assert "PROJECT INSTRUCTIONS: CLAUDE.md" in rendered
+    assert "Prefer small diffs." in rendered
+
+
+def test_project_instructions_truncates_large_files(tmp_path):
+    (tmp_path / "CODEPILOT.md").write_text("a" * 20, encoding="utf-8")
+
+    instructions = load_project_instructions(tmp_path, names=("CODEPILOT.md",), max_bytes=5)
+    assert instructions[0].content.startswith("aaaaa")
+    assert "truncated" in instructions[0].content
 
 
 def test_llm_client_supports_offline_and_openai_compatible(tmp_path, monkeypatch):

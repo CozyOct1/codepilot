@@ -7,6 +7,7 @@ from langgraph.graph import END, StateGraph
 from sqlalchemy import Engine
 from sqlmodel import Session
 
+from codepilot.agent.instructions import load_project_instructions, render_project_instructions
 from codepilot.agent.llm import get_llm_client
 from codepilot.agent.memory import LongTermMemory, ShortTermMemory
 from codepilot.agent.react import format_react_trace, run_react_loop
@@ -23,6 +24,7 @@ class AgentState(TypedDict, total=False):
     context: list[dict[str, str]]
     long_term_memory: list[dict[str, str]]
     short_term_memory: str
+    project_instructions: str
     plan: str
     react_trace: str
     result_summary: str
@@ -34,6 +36,7 @@ def retrieve(state: AgentState) -> AgentState:
     repo = Path(state["repo_path"])
     state["context"] = search_repository(repo, settings.chroma_path, state["user_request"], limit=5)
     state["long_term_memory"] = LongTermMemory(settings.memory_path, repo).search(state["user_request"], limit=4)
+    state["project_instructions"] = render_project_instructions(load_project_instructions(repo))
     short_memory = ShortTermMemory.load(
         settings.memory_path,
         window_size=settings.short_memory_window,
@@ -51,14 +54,17 @@ def plan(state: AgentState) -> AgentState:
         for item in state.get("long_term_memory", [])
     )
     short_memory = state.get("short_term_memory", "")
+    project_instructions = state.get("project_instructions", "")
     fallback = (
         "ReAct Plan:\n"
         "Thought: inspect repository context, short-term memory, and long-term memory before acting.\n"
+        "Project instructions: follow repository guidance files when present.\n"
         "Action candidates: git_status, run_tests when the request asks for tests, git_diff when the request asks for changes.\n"
         "Observation handling: summarize each tool result and persist useful outcomes back into memory.\n\n"
         f"Relevant files: {', '.join(item['path'] for item in state.get('context', [])) or 'none'}\n"
         f"Long-term memory hits: {len(state.get('long_term_memory', []))}\n"
-        f"Short-term memory available: {'yes' if short_memory else 'no'}"
+        f"Short-term memory available: {'yes' if short_memory else 'no'}\n"
+        f"Project instructions available: {'yes' if project_instructions else 'no'}"
     )
     llm = get_llm_client(settings)
     if not llm.available:
@@ -72,6 +78,7 @@ def plan(state: AgentState) -> AgentState:
             f"Request:\n{state['user_request']}\n\n"
             f"Short-term memory:\n{short_memory or 'none'}\n\n"
             f"Long-term memory:\n{long_memory or 'none'}\n\n"
+            f"Project instructions:\n{project_instructions or 'none'}\n\n"
             f"Repository context:\n{context or 'none'}"
         )
         state["plan"] = response or fallback

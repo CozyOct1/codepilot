@@ -9,6 +9,7 @@ from rich.table import Table
 from sqlalchemy import Engine
 
 from codepilot.agent.graph import run_agent_task
+from codepilot.agent.instructions import load_project_instructions, render_project_instructions
 from codepilot.core.config import get_settings, write_project_config
 from codepilot.core.database import create_db_engine, create_task, init_db, list_tasks
 from codepilot.indexer.repo import index_repository
@@ -60,6 +61,13 @@ def index(repo: Path = typer.Option(Path("."), "--repo", "-r")) -> None:
     settings = get_settings(repo)
     result = index_repository(settings.repo_path, settings.chroma_path)
     console.print(result)
+
+
+@app.command()
+def instructions(repo: Path = typer.Option(Path("."), "--repo", "-r")) -> None:
+    """Show project guidance files that CodePilot will inject into agent planning."""
+    rendered = render_project_instructions(load_project_instructions(repo.resolve()))
+    console.print(rendered or "No project instructions found.")
 
 
 def run_local_task(request: str, repo: Path) -> None:
