@@ -1,129 +1,128 @@
 # CodePilot
 
-CodePilot 是一个面向私有代码仓库的智能开发助手 MVP。项目提供 CLI 和 FastAPI 服务，用于完成代码仓库索引、自然语言任务创建、仓库上下文检索、安全工具执行、任务记录持久化和 Prometheus 指标暴露。
+面向私有代码仓库的本地智能开发助手 MVP，支持 CLI、HTTP API、仓库索引、任务记录、安全工具调用、Prometheus 指标暴露和本地压测。
 
-项目面向单机私有仓库工作流，默认采用保守执行策略：对模糊需求优先生成计划并记录任务；对文件和 Shell 等高风险操作，通过工具层安全规则进行限制。
+<!-- PROJECT SHIELDS -->
 
-## 功能特性
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![Python][python-shield]][python-url]
 
-- **命令行工作流**：支持仓库初始化、索引构建、项目问答、编辑任务创建、测试执行、Diff 查看、任务列表和远程 API 调用。
-- **HTTP API**：支持会话创建、任务创建/查询、聊天任务、仓库索引、健康检查和指标暴露。
-- **Agent 工作流**：基于 LangGraph 串联仓库检索、计划生成和安全执行阶段。
-- **仓库索引**：基于 Chroma 为源码和文档文件构建本地索引。
-- **任务持久化**：使用 SQLModel/SQLAlchemy 记录会话、消息、任务、工具调用和文件变更。
-- **安全工具层**：文件访问限制在目标仓库内；Shell 命令使用白名单，并阻断高风险 token。
-- **可观测性**：通过 Prometheus 暴露任务数量、工具调用次数和工具延迟指标。
-- **本地部署**：提供 Redis、Prometheus、Grafana 和可选 Nginx 反向代理的 Docker Compose 配置。
-- **离线兜底**：未配置 `OPENAI_API_KEY` 时，仍可使用确定性兜底计划，保证本地演示和测试可运行。
+<!-- PROJECT LOGO -->
+<br />
 
-## 架构
+<p align="center">
+  <h3 align="center">CodePilot</h3>
+  <p align="center">
+    一个面向私有仓库的本地开发助手，用于验证代码仓库索引、Agent 任务编排、安全工具调用和接口压测优化。
+    <br />
+    <a href="https://github.com/CozyOct1/codepilot"><strong>查看项目源码 »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/CozyOct1/codepilot">项目首页</a>
+    ·
+    <a href="https://github.com/CozyOct1/codepilot/issues">报告 Bug</a>
+    ·
+    <a href="https://github.com/CozyOct1/codepilot/issues">提出新特性</a>
+  </p>
+</p>
 
-```text
-CLI / HTTP Client
-      |
-      v
-FastAPI Agent Server
-      |
-      +-- SQLite task/session store
-      +-- Prometheus metrics
-      |
-      v
-LangGraph workflow
-      |
-      +-- Chroma repository search
-      +-- Planner
-      +-- Safe tools: filesystem / shell / git
-      |
-      v
-Task summary and persisted result
-```
+本篇 `README.md` 面向开发者，内容基于当前项目真实代码和本地实测结果编写。
 
-## 技术栈
+## 目录
 
-| 模块 | 技术 |
-| --- | --- |
-| CLI | Typer, Rich |
-| API | FastAPI, Pydantic |
-| Agent 编排 | LangGraph, LangChain OpenAI |
-| 仓库索引 | Chroma |
-| 数据存储 | SQLite, SQLModel, SQLAlchemy |
-| 指标监控 | prometheus-client |
-| 部署组件 | Docker Compose, Redis, Prometheus, Grafana, Nginx |
-| 测试 | pytest |
+- [上手指南](#上手指南)
+  - [开发前的配置要求](#开发前的配置要求)
+  - [安装步骤](#安装步骤)
+  - [基础使用](#基础使用)
+- [项目功能](#项目功能)
+- [文件目录说明](#文件目录说明)
+- [开发的架构](#开发的架构)
+- [HTTP API](#http-api)
+- [MCP 工具](#mcp-工具)
+- [部署](#部署)
+- [压测与量化结果](#压测与量化结果)
+- [使用到的框架](#使用到的框架)
+- [版本控制](#版本控制)
+- [当前限制](#当前限制)
+- [作者](#作者)
+- [版权说明](#版权说明)
 
-## 环境要求
+## 上手指南
 
-- Python 3.10+
-- uv
-- Docker 和 Docker Compose，可选，用于 Redis/Prometheus/Grafana/Nginx
-- 项目依赖由 `pyproject.toml` 和 `uv.lock` 管理
+CodePilot 当前定位是单机私有仓库辅助开发工具，主要验证以下能力：
 
-## 安装与检查
+- 对本地仓库建立可检索索引
+- 根据自然语言请求生成执行计划
+- 在受限工具层内查看仓库状态、运行测试和查看 Diff
+- 通过 SQLite 持久化任务、会话和执行结果
+- 通过 FastAPI 对外提供任务、索引和指标接口
+- 通过本地压测脚本量化接口吞吐和延迟表现
 
-进入项目根目录：
+### 开发前的配置要求
+
+1. Python 3.10+
+2. uv
+3. Docker 和 Docker Compose，可选，用于启动 Redis、Prometheus、Grafana、Nginx
+4. OpenAI API Key，可选；未配置时会使用离线兜底计划
+
+### 安装步骤
+
+1. Clone the repo
 
 ```bash
-cd /data/niewenjie/CodePilot
+git clone git@github.com:CozyOct1/codepilot.git
+cd codepilot
+```
+
+2. 安装依赖
+
+```bash
 uv sync --locked
+```
+
+3. 运行测试
+
+```bash
 uv run pytest
+```
+
+4. 查看命令行帮助
+
+```bash
 uv run codepilot --help
 ```
 
-`uv sync --locked` 会根据 `uv.lock` 创建或更新本地虚拟环境，后续命令统一通过 `uv run` 执行。
+### 基础使用
 
-## 配置
-
-CodePilot 会读取项目根目录下 `.env` 中的环境变量。
-
-常用配置：
-
-```env
-OPENAI_API_KEY=
-LANGSMITH_API_KEY=
-LANGSMITH_PROJECT=codepilot
-LANGSMITH_TRACING=false
-CODEPILOT_HOST=0.0.0.0
-CODEPILOT_PORT=8001
-CODEPILOT_DATABASE_URL=sqlite:///./.codepilot/codepilot.db
-CODEPILOT_REDIS_URL=redis://localhost:6379/0
-CODEPILOT_CHROMA_PATH=./storage/chroma
-```
-
-`OPENAI_API_KEY` 不是本地兜底模式的必需项。未配置时，工作流仍会创建确定性计划，并可以执行测试、Diff 等安全本地命令。
-
-## CLI 使用
-
-初始化仓库：
+初始化当前仓库：
 
 ```bash
 uv run codepilot init --repo . --name CodePilot
 ```
 
-构建本地索引：
+构建仓库索引：
 
 ```bash
 uv run codepilot index --repo .
 ```
 
-询问仓库信息：
+询问项目结构：
 
 ```bash
 uv run codepilot ask "请概括当前项目模块" --repo .
 ```
 
-创建编辑类任务：
-
-```bash
-uv run codepilot edit "请运行测试并总结失败原因" --repo .
-```
-
-通过安全 Shell 工具运行测试：
+运行测试：
 
 ```bash
 uv run codepilot test --repo .
 ```
 
-查看 Git Diff：
+查看 Diff：
 
 ```bash
 uv run codepilot diff --repo .
@@ -135,9 +134,69 @@ uv run codepilot diff --repo .
 uv run codepilot tasks --repo .
 ```
 
-## API 使用
+## 项目功能
 
-启动 API 服务：
+| 能力 | 当前实现 |
+| --- | --- |
+| CLI 工作流 | 初始化、索引、问答、任务执行、测试、Diff、任务列表、远程 API 调用 |
+| HTTP API | 健康检查、指标、会话创建、任务创建/查询、聊天任务、仓库索引 |
+| Agent 编排 | 基于 LangGraph 串联检索、计划生成和执行阶段 |
+| 仓库索引 | 使用 Chroma 持久化本地索引，支持 Python、Markdown、JSON、YAML、前端源码等文本文件 |
+| 离线运行 | 未配置 `OPENAI_API_KEY` 时使用确定性兜底计划，保证测试和演示可运行 |
+| 数据持久化 | 使用 SQLite、SQLModel、SQLAlchemy 存储会话、任务、消息、工具调用和文件变更 |
+| 安全工具层 | 文件访问限制在仓库内，Shell 命令使用允许列表并阻断高风险 token |
+| 可观测性 | 暴露 Prometheus 格式指标，记录任务数量、工具调用次数和工具耗时 |
+| 本地部署 | 提供 Redis、Prometheus、Grafana、Nginx 的 Docker Compose 配置 |
+
+## 文件目录说明
+
+```text
+CodePilot
+├── codepilot/
+│   ├── agent/          LangGraph Agent 工作流
+│   ├── cli/            Typer 命令行入口
+│   ├── core/           配置、数据库、指标、Redis 辅助模块
+│   ├── indexer/        仓库索引与检索
+│   ├── mcp_server/     MCP 工具服务
+│   ├── server/         FastAPI 应用和请求模型
+│   ├── tools/          文件系统、Shell、Git、安全工具
+│   └── workers/        Worker 入口
+├── deploy/             Docker Compose、Nginx、Prometheus 配置
+├── scripts/            本地工具脚本
+├── skills/             本地 Agent Skill prompt 资源
+├── tests/              pytest 测试
+├── main.py             项目入口
+├── pyproject.toml      Python 项目配置
+├── uv.lock             uv 锁定文件
+├── LICENSE             MIT License
+└── README.md
+```
+
+## 开发的架构
+
+```text
+CLI / HTTP Client
+        |
+        v
+FastAPI Server
+        |
+        +-- SQLite task/session store
+        +-- Prometheus metrics
+        |
+        v
+LangGraph Agent
+        |
+        +-- Repository retrieval: Chroma
+        +-- Planner: OpenAI / offline fallback
+        +-- Safe tools: shell / git / filesystem
+        |
+        v
+Task plan, execution summary, persisted result
+```
+
+## HTTP API
+
+启动服务：
 
 ```bash
 uv run codepilot serve --host 0.0.0.0 --port 8001
@@ -149,7 +208,7 @@ uv run codepilot serve --host 0.0.0.0 --port 8001
 curl http://127.0.0.1:8001/health
 ```
 
-查看指标：
+Prometheus 指标：
 
 ```bash
 curl http://127.0.0.1:8001/metrics
@@ -174,7 +233,7 @@ curl -X POST http://127.0.0.1:8001/api/tasks \
 查看最近任务：
 
 ```bash
-curl http://127.0.0.1:8001/api/tasks
+curl "http://127.0.0.1:8001/api/tasks?limit=20"
 ```
 
 通过 API 构建索引：
@@ -191,7 +250,7 @@ curl -X POST "http://127.0.0.1:8001/api/index?repo_path=/data/niewenjie/CodePilo
 uv run python -m codepilot.mcp_server.server
 ```
 
-当前暴露的工具：
+当前暴露工具：
 
 ```text
 filesystem_list_dir
@@ -205,11 +264,13 @@ git_diff
 
 安全约束：
 
-- 文件系统工具会将路径解析限制在目标仓库内。
+- 文件路径会解析并限制在目标仓库内。
 - Shell 命令必须以允许的命令前缀开头。
-- 阻断 `sudo`、`rm`、`curl`、`wget` 等高风险 token。
+- 默认阻断 `sudo`、`rm`、`mkfs`、`dd`、`chmod`、`chown`、`curl`、`wget` 等高风险 token。
 
 ## 部署
+
+本仓库的 Docker Compose 主要用于启动依赖组件和观测组件，不包含 CodePilot API 应用容器。API 服务需要通过 `uv run codepilot serve` 在本机启动。
 
 启动 Redis、Prometheus 和 Grafana：
 
@@ -230,7 +291,7 @@ docker compose --env-file .env \
   up -d nginx
 ```
 
-默认本地端口：
+默认端口：
 
 | 服务 | 端口 |
 | --- | ---: |
@@ -246,11 +307,9 @@ Grafana 本地默认账号：
 admin / admin
 ```
 
-如果 Docker Hub 访问较慢，`deploy/docker-compose.local.yml` 已为本地部署镜像配置 `docker.m.daocloud.io` 镜像代理。
+## 压测与量化结果
 
-## 压测
-
-项目内置轻量本地 HTTP 压测脚本：
+项目提供轻量本地 HTTP 压测脚本：
 
 ```bash
 uv run python scripts/load_test.py --endpoint health --requests 1000 --concurrency 50
@@ -258,9 +317,12 @@ uv run python scripts/load_test.py --endpoint metrics --requests 300 --concurren
 uv run python scripts/load_test.py --endpoint tasks --requests 300 --concurrency 20
 ```
 
-`tasks` 压测默认使用 `run=false`，只测试 HTTP 处理和 SQLite 任务创建，不包含完整 Agent 执行链路。
+说明：
 
-当前本地环境实测结果：
+- `tasks` 压测默认请求 `POST /api/tasks` 且 `run=false`，只测试 HTTP 请求处理和 SQLite 任务写入，不包含完整 Agent 执行链路。
+- 以下数据来自当前开发环境的一次本地实测，可作为项目优化记录，不应作为跨机器性能承诺。
+
+当前实测结果：
 
 | 接口 | 请求数 | 并发 | 成功率 | 吞吐 | P50 | P95 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -270,68 +332,76 @@ uv run python scripts/load_test.py --endpoint tasks --requests 300 --concurrency
 
 SQLite 写入链路优化前后，`POST /api/tasks` 在 `20` 并发、`300` 请求下的结果：
 
-| 指标 | 优化前 | 优化后 |
-| --- | ---: | ---: |
-| 成功率 | 0% | 100% |
-| 吞吐 | 1.96 req/s | 146.09 req/s |
-| P95 延迟 | 10542.14ms | 667.83ms |
+| 指标 | 优化前 | 优化后 | 变化 |
+| --- | ---: | ---: | ---: |
+| 成功率 | 0% | 100% | +100 个百分点 |
+| 吞吐 | 1.96 req/s | 146.09 req/s | 约 74.5 倍 |
+| P95 延迟 | 10542.14ms | 667.83ms | 降低约 93.7% |
 
 相关优化：
 
-- 启用 SQLite `journal_mode=WAL`
+- SQLite 启用 `journal_mode=WAL`
 - 设置 SQLite `busy_timeout=30000`
 - 调整 SQLAlchemy 连接池和溢出连接数
-- 在 SQLite 写操作周围增加短进程内写锁
-- CLI 服务入口关闭 Uvicorn access log
+- 对 SQLite 写操作增加短进程内写锁
+- 关闭 Uvicorn access log，减少压测时日志 IO 干扰
 
-## 开发
+## 使用到的框架
 
-运行测试：
+- [uv](https://docs.astral.sh/uv/)
+- [Typer](https://typer.tiangolo.com/)
+- [Rich](https://rich.readthedocs.io/)
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [LangGraph](https://langchain-ai.github.io/langgraph/)
+- [LangChain OpenAI](https://python.langchain.com/docs/integrations/chat/openai/)
+- [Chroma](https://www.trychroma.com/)
+- [SQLModel](https://sqlmodel.tiangolo.com/)
+- [SQLAlchemy](https://www.sqlalchemy.org/)
+- [Prometheus Client](https://github.com/prometheus/client_python)
+- [pytest](https://docs.pytest.org/)
+- [Docker Compose](https://docs.docker.com/compose/)
+
+## 版本控制
+
+该项目使用 Git 进行版本管理，主分支为 `main`。
+
+常用提交流程：
 
 ```bash
-uv run pytest
-```
-
-当前测试状态：
-
-```text
-8 passed
-```
-
-对主要模块进行编译检查：
-
-```bash
-uv run python -m py_compile \
-  codepilot/core/database.py \
-  codepilot/cli/main.py \
-  scripts/load_test.py
-```
-
-## 项目结构
-
-```text
-codepilot/
-  agent/          LangGraph 工作流
-  cli/            Typer CLI
-  core/           配置、数据库、指标、Redis 辅助模块
-  indexer/        仓库索引与检索
-  mcp_server/     MCP 工具服务
-  server/         FastAPI 应用和请求模型
-  tools/          文件系统、Shell、Git、安全工具
-  workers/        Worker 入口
-deploy/           Docker Compose、Nginx、Prometheus 配置
-scripts/          本地工具脚本
-skills/           本地 Agent Skill prompt 资源
-tests/            pytest 测试
+git status
+git add .
+git commit -m "describe your change"
+git push origin main
 ```
 
 ## 当前限制
 
-- SQLite 适合当前单机 MVP。更高写入并发建议迁移到 PostgreSQL 或其他服务端数据库。
-- `run=true` 任务会进入 Agent 执行链路，可能包含检索、Shell 命令、测试和外部 LLM 调用。稳定压测建议使用 `run=false`。
-- 当前索引使用确定性本地 embedding，适合离线运行。更高质量的语义检索需要接入真实 embedding 模型。
-- 默认执行策略偏保守，不会自动进行大范围代码重写。
+- 当前 Agent 执行阶段较保守，主要支持查看 Git 状态、运行测试和查看 Diff；复杂代码修改仍需要人工确认后通过工具或人工编辑完成。
+- SQLite 适合单机 MVP 和轻量并发写入，更高并发或多实例部署建议迁移到 PostgreSQL。
+- 当前索引使用确定性 Hash Embedding，适合离线演示和基础检索，不等同于高质量语义向量模型。
+- `run=true` 会进入 Agent 执行链路，可能包含索引检索、测试执行和外部 LLM 调用，不适合直接作为稳定接口压测目标。
+- Docker Compose 当前不构建 API 应用镜像，只负责依赖和观测组件。
 
-## 许可证
+## 作者
 
-当前仓库未包含 License 文件。
+CozyOct1
+
+GitHub: [https://github.com/CozyOct1](https://github.com/CozyOct1)
+
+## 版权说明
+
+该项目签署 MIT 授权许可，详情请参阅 [LICENSE](LICENSE)。
+
+<!-- links -->
+[contributors-shield]: https://img.shields.io/github/contributors/CozyOct1/codepilot.svg?style=flat-square
+[contributors-url]: https://github.com/CozyOct1/codepilot/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/CozyOct1/codepilot.svg?style=flat-square
+[forks-url]: https://github.com/CozyOct1/codepilot/network/members
+[stars-shield]: https://img.shields.io/github/stars/CozyOct1/codepilot.svg?style=flat-square
+[stars-url]: https://github.com/CozyOct1/codepilot/stargazers
+[issues-shield]: https://img.shields.io/github/issues/CozyOct1/codepilot.svg?style=flat-square
+[issues-url]: https://github.com/CozyOct1/codepilot/issues
+[license-shield]: https://img.shields.io/github/license/CozyOct1/codepilot.svg?style=flat-square
+[license-url]: https://github.com/CozyOct1/codepilot/blob/main/LICENSE
+[python-shield]: https://img.shields.io/badge/python-3.10%2B-blue.svg?style=flat-square
+[python-url]: https://www.python.org/downloads/
