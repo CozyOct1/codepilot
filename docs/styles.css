@@ -17,6 +17,216 @@
   --shadow: 0 16px 38px rgba(25, 42, 56, 0.09);
 }
 
+/* Figma Make project-page visual refresh */
+:root {
+  --page-bg: #f7f9fc;
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --surface-soft: #f1f5f9;
+  --ink: #111827;
+  --muted: #667085;
+  --line: #d9e2ec;
+  --accent: #0f766e;
+  --accent-strong: #0b5e59;
+  --blue: #2f63d8;
+  --amber: #b95f10;
+  --code: #101820;
+  --code-soft: #1b2a34;
+  --shadow: 0 18px 45px rgba(17, 24, 39, 0.08);
+  --shadow-lg: 0 30px 90px rgba(17, 24, 39, 0.14);
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(15, 118, 110, 0.08), rgba(247, 249, 252, 0) 420px),
+    linear-gradient(90deg, rgba(17, 24, 39, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(17, 24, 39, 0.045) 1px, transparent 1px),
+    var(--page-bg);
+  background-size: auto, 48px 48px, 48px 48px, auto;
+}
+
+body::before {
+  display: none;
+}
+
+.site-header {
+  min-height: 72px;
+  border-bottom: 1px solid rgba(217, 226, 236, 0.92);
+  background: rgba(247, 249, 252, 0.88);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.74) inset;
+}
+
+.brand img {
+  border-radius: 8px;
+}
+
+.nav-links a {
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.nav-links a:hover,
+.service-pill {
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.hero {
+  min-height: calc(94vh - 72px);
+  align-items: center;
+  padding-top: clamp(62px, 8vw, 108px);
+}
+
+.hero-copy {
+  max-width: 820px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+h1,
+h2 {
+  color: #0f172a;
+  text-wrap: balance;
+}
+
+.hero-text,
+.section-heading p,
+.split-section p,
+.repo-summary p,
+.retrieval-card p,
+.context-hit p,
+.metric-card p,
+.trace-item p {
+  color: #516070;
+}
+
+.hero-badges span,
+.mini-tags span,
+.status-tag {
+  border-color: rgba(15, 118, 110, 0.2);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--accent-strong);
+}
+
+.button,
+button {
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.button:hover,
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.09);
+}
+
+button.primary,
+.button.primary {
+  border-color: #111827;
+  background: #111827;
+  box-shadow: 0 16px 32px rgba(17, 24, 39, 0.16);
+}
+
+button.primary:hover,
+.button.primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.hero-console,
+.demo-panel,
+.timeline-panel,
+.result-panel,
+.retrieval-card,
+.metric-card,
+.project-strip div,
+.stats div,
+.feature-card,
+.security-grid article,
+.deploy-card,
+.roadmap div,
+.arch-stage,
+.arch-grid div {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: #d9e2ec;
+  box-shadow: var(--shadow);
+}
+
+.hero-console {
+  box-shadow: var(--shadow-lg);
+}
+
+.console-label,
+.console-top,
+.console-body,
+.code-block {
+  background-color: var(--code);
+}
+
+.project-strip,
+.stats {
+  padding-bottom: 22px;
+}
+
+.feature-card,
+.security-grid article,
+.deploy-card,
+.roadmap div,
+.retrieval-card,
+.metric-card {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.feature-card:hover,
+.security-grid article:hover,
+.deploy-card:hover,
+.roadmap div:hover,
+.retrieval-card:hover,
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: #c6d3df;
+  box-shadow: var(--shadow-lg);
+}
+
+.arch-stage.emphasized {
+  border-color: rgba(15, 118, 110, 0.34);
+  background: #eef7f5;
+}
+
+input,
+select,
+textarea,
+.repo-summary,
+.trace-item,
+.context-hit,
+.tool-row,
+.search-box,
+.tabs {
+  border-color: var(--line);
+  background: #fbfdff;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+}
+
+.footer {
+  border-top: 1px solid var(--line);
+  background: #ffffff;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -931,4 +1141,66 @@ textarea:focus {
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+/* Final Figma Make project-page overrides */
+body {
+  background:
+    linear-gradient(180deg, rgba(15, 118, 110, 0.08), rgba(247, 249, 252, 0) 420px),
+    linear-gradient(90deg, rgba(17, 24, 39, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(17, 24, 39, 0.045) 1px, transparent 1px),
+    var(--page-bg);
+  background-size: auto, 48px 48px, 48px 48px, auto;
+}
+
+.site-header {
+  background: rgba(247, 249, 252, 0.88);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.74) inset;
+}
+
+.hero {
+  min-height: calc(94vh - 72px);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--accent-strong);
+}
+
+.hero-console,
+.demo-panel,
+.timeline-panel,
+.result-panel,
+.retrieval-card,
+.metric-card,
+.project-strip div,
+.stats div,
+.feature-card,
+.security-grid article,
+.deploy-card,
+.roadmap div,
+.arch-stage,
+.arch-grid div {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow);
+}
+
+.hero-console {
+  box-shadow: var(--shadow-lg);
+}
+
+.feature-card:hover,
+.security-grid article:hover,
+.deploy-card:hover,
+.roadmap div:hover,
+.retrieval-card:hover,
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
